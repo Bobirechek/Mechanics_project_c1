@@ -1,1 +1,0 @@
-# Mechanics_project_c1
