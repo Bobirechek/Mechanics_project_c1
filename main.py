@@ -128,11 +128,7 @@ def time_at_altitude(t_arr, h_arr, target_m):
     return t_arr[-1]
 
 
-# 8. ВЫЧИСЛИТЕЛЬНЫЙ ЭКСПЕРИМЕНТ
-print("=" * 65)
-print("  ТЕМА 10: ДВИЖЕНИЕ СПУТНИКА В АТМОСФЕРЕ ЗЕМЛИ")
-print("  Разностная схема по виткам + аналитическая формула")
-print("=" * 65)
+# 8. ВЫЧИСЛИТЕЛЕНИЯ
 
 # --- Безразмерные параметры ---
 T0 = np.sqrt(R_EARTH**3 / GM)
@@ -237,23 +233,40 @@ ax2.set_xlim(left=0)
 
 # ─── (в) Профиль плотности атмосферы ──────────────────────────────
 ax3 = fig.add_subplot(gs[1, 0])
-h_range = np.linspace(100, 600, 500) * 1e3
-ax3.semilogy(h_range / 1e3, atm_density(h_range), 'navy', lw=2.5,
-             label='Экспон. модель')
-ax3.semilogy(H_CHECK / 1e3, RHO_CHECK, 'ro', ms=7, zorder=5,
-             label='Данные COESA-76')
-ax3.axvspan(300, 400, alpha=0.13, color='orange', label='Диапазон 300–400 км')
+
+# Расширенная таблица COESA-76 (100–500 км)
+H_FULL = np.array([100, 150, 200, 250, 300, 350, 400, 450, 500]) * 1e3
+RHO_FULL = np.array([5.60e-7, 2.10e-9, 2.54e-10, 6.07e-11,
+                     1.916e-11, 7.01e-12, 2.803e-12, 1.23e-12, 5.21e-13])
+
+# Справочная кривая: кусочная экспонента по данным COESA-76
+# (линейная интерполяция в log-масштабе => кусочные экспоненты с разными H)
+h_ref_range = np.linspace(100, 500, 800) * 1e3
+rho_ref = np.exp(np.interp(h_ref_range, H_FULL, np.log(RHO_FULL)))
+
+# Наша рабочая модель — одна экспонента, точна в диапазоне 300–400 км
+h_model_range = np.linspace(250, 500, 400) * 1e3
+
+ax3.semilogy(h_ref_range / 1e3, rho_ref,
+             color='steelblue', lw=2.5, label='COESA-76 (кусочная аппроксимация)')
+ax3.semilogy(h_model_range / 1e3, atm_density(h_model_range),
+             color='navy', lw=2.0, ls='--', label='Рабочая модель: $H = 52$ км')
+ax3.semilogy(H_FULL / 1e3, RHO_FULL,
+             'ro', ms=7, zorder=5, label='Табличные данные COESA-76')
+ax3.axvspan(300, 400, alpha=0.13, color='orange', label='Рабочий диапазон (300–400 км)')
 ax3.axvline(300, color='orange', lw=1.2, ls='--')
 ax3.axvline(400, color='orange', lw=1.2, ls='--')
 ax3.set_xlabel('Высота h, км')
 ax3.set_ylabel('Плотность ρ, кг/м³')
 ax3.set_title('(в) Профиль плотности атмосферы')
-ax3.legend(fontsize=8.5)
-ax3.text(415, 8e-12,
-         r'$\rho = \rho_0\,e^{-(h-300)/H}$' + '\n$H = 52$ км',
-         fontsize=9.5, color='navy',
-         bbox=dict(facecolor='lightyellow', alpha=0.9,
-                   edgecolor='navy', boxstyle='round,pad=0.4'))
+ax3.legend(fontsize=7.8, loc='upper right')
+ax3.set_xlim(95, 520)
+# Аннотация масштабов высоты
+ax3.text(105, 3e-10,
+         'H(100–200 км) ≈ 10–24 км\nH(300–400 км) ≈ 52 км\nH(400–500 км) ≈ 59 км',
+         fontsize=7.5, color='steelblue',
+         bbox=dict(facecolor='white', alpha=0.85,
+                   edgecolor='steelblue', boxstyle='round,pad=0.4'))
 
 # ─── (г) delta_a за один виток в зависимости от высоты ──────────────────────────
 ax4 = fig.add_subplot(gs[1, 1])
@@ -424,4 +437,3 @@ for h_km in [400, 350, 300, 250, 200]:
     da = 2 * np.pi * B_ * atm_density(h_km * 1e3) * a_**2
     T_ = 2 * np.pi * np.sqrt(a_**3 / GM)
     print(f"    h = {h_km} км: |Δa| = {da:.3f} м/виток  =  {da/T_*86400:.3f} км/сут")
-
